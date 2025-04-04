@@ -77,3 +77,133 @@ Step 1: Running a Java Program in a Docker Container
         dockerfile
         # Copy all Java files into the container
         COPY java-sample /app
+
+-----------------------------------
+
+Docker Volumes:
+----------------------
+Volumes will store the data of the containers inside the host(machine).
+
+Without creating volume we gonna see how the behaviour will be.
+1. We gonna a create a redis container
+2. run redis commands to save data
+3. stop the container
+4. start the container and retrieve the saved data and see the behaviour.
+
+    docker run -d --name my_redis redis    ---- This starts Redis, but no persistent storage is configured.
+    docker exec -it my_redis redis-cli
+    SET username "Arshad"
+    GET username
+
+    docker stop my_redis - Stop container
+    docker rm my_redis
+
+
+
+With creating volume we gonna see how the behaviour will be.
+-------------------------------
+1. we create volume
+2. We gonna a create a redis continer
+3. run redis commands to save data
+4. stop the container
+5. start the container and retrieve the saved data and see the behaviour.
+
+    docker volume create redis_data
+    docker run -d --name my_redis_1  -v redis_data:/data redis --save 60 1 --loglevel warning
+    -v redis_data:/data → Mounts a Docker volume to persist Redis data.
+    --save 60 1 → Saves a snapshot (dump.rdb) every 60 seconds if at least 1 key is modified.
+    --loglevel warning → Sets log level to warnings only.
+
+
+    Testing persistence
+    -----------------------
+    docker exec -it my_redis_1 redis-cli
+    SET user:1 "Arshad"
+    GET user:1
+
+    docker stop my_redis_1
+    docker rm my_redis_1
+
+    Restart Redis with the Same Volume
+   -----------------------------------------
+    docker run -d --name my_redis_1  -v redis_data:/data redis --save 60 1 --loglevel warning
+    docker exec -it my_redis_1 redis-cli
+    GET user:1
+     Data is still there! Redis is now persistent.
+
+
+Another sample of volume
+----------------------------
+1. we create volume for mysql
+2. We gonna a create a mysql continer
+3. run mysql commands to save data
+4. stop the container
+5. start the container and retrieve the saved data and see the behaviour.
+
+    docker volume create mysql_data
+    docker run -d --name my_mysql_new -e MYSQL_ROOT_PASSWORD=rootpassword -e MYSQL_DATABASE=testdb -e MYSQL_USER=user  -e MYSQL_PASSWORD=password  -v mysql_data:/var/lib/mysql mysql
+    docker exec -it my_mysql_new mysql -u user -ppassword -D testdb
+    CREATE TABLE employees (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100));
+    INSERT INTO employees (name) VALUES ('Ravi'), ('Santhosh'), ('Rocky');
+    SELECT * FROM employees;
+    exit; - exit sql
+    docker stop my_mysql_new
+    docker rm my_mysql_new
+
+Docker Compose
+---------------
+Docker Compose is a tool that allows you to define and run multiple containers using a single YAML file.
+
+docker-conpose.yaml
+--------------------------------------
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: my_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  redis:
+    image: redis:latest
+    container_name: my_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+volumes:
+  mysql-data:
+  redis-data:
+
+-----------------------------------------------------------------
+
+always - the container will spin up if system crashes or container fails due to any failures.
+- mysql-data:/var/lib/MySQL  - the below is meaning for it.
+mysql-data: → This is the named volume that Docker creates.
+/var/lib/mysql → This is the path inside the MySQL container where MySQL stores all database files.
+
+docker-compose up -d -- up the services defined.
+docker-compose ps -- Check Running Containers
+docker-compose down -- Stop & Remove Containers
+
+Redis command: Take the same commands above and use it here.
+
+
+
+
+
+
+
+

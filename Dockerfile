@@ -4,8 +4,10 @@ FROM openjdk:latest
 # sets the working directory
 WORKDIR /app
 
+ARG SOURCE_FOLDER
+
 #copy all files into container
-COPY /java-sample /app
+COPY ${SOURCE_FOLDER} /app/
 
 #Compiles the java program
 RUN javac HelloWorldNew.java
